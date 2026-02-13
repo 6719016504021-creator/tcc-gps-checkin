@@ -1,0 +1,13 @@
+{
+  "name": "gps-attendance-system",
+  "version": "1.0.0",
+  "description": "ระบบเช็คชื่อ GPS วิทยาลัยชุมชนเทพา",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}

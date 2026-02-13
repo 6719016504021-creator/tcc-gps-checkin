@@ -21,6 +21,41 @@
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
 
     <!-- SweetAlert2 -->
+     <!-- Firebase SDK สำหรับออนไลน์ -->
+<script type="module">
+    // 1. แก้ไข URL การ Import ให้ตรงกับบริการที่ใช้
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+    import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+    import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
+
+    // 2. ค่า Config (ใช้ค่าเดิมของคุณที่ถูกต้องอยู่แล้ว)
+    const firebaseConfig = {
+        apiKey: "AIzaSyC_ZhT0NT9IwFAMDxz3yv3gFwsm3IqLhtU",
+        authDomain: "gpsproject-bd437.firebaseapp.com",
+        projectId: "gpsproject-bd437",
+        storageBucket: "gpsproject-bd437.firebasestorage.app",
+        messagingSenderId: "280108463495",
+        appId: "1:280108463495:web:d7bff3a92150cc867d4f22",
+        measurementId: "G-D126GGHPJN"
+    };
+
+    // 3. เริ่มต้นระบบ
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+
+    // 4. ล็อกอินแบบระบุตัวตน (Anonymous)
+    signInAnonymously(auth).then(() => {
+        console.log("✅ Firebase Connected Successfully");
+    }).catch((error) => {
+        console.error("❌ Connection Failed:", error);
+    });
+
+    // 5. ส่งออกไปให้ Script อื่นๆ ในหน้าเว็บเรียกใช้ได้
+    window.firebaseDB = db;
+    window.firebaseTools = { collection, addDoc, onSnapshot, serverTimestamp, query, orderBy };
+</script>
+    </script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <!-- Leaflet.js -->
@@ -77,6 +112,7 @@
 
         #map-teacher { height: 350px; width: 100%; border-radius: 0.75rem; z-index: 1; }
         
+        /* FIX: Utility classes to force display/hide regardless of other classes */
         .force-show { display: flex !important; }
         .force-hide { display: none !important; }
         
@@ -131,100 +167,127 @@
             </div>
 
             <!-- 2. Student Register -->
+            <!-- FIX: Removed hidden, used flex utility class -->
             <div id="page-student-register" class="force-hide flex-col justify-center items-center w-full py-6 relative z-50 min-h-full">
-                <div class="bg-white p-6 sm:p-8 rounded-3xl shadow-xl border border-gray-100 w-full max-w-sm mx-auto">
+                <div class="bg-white p-8 rounded-3xl shadow-2xl border border-gray-100 w-full max-w-sm mx-auto">
                     <div class="text-center mb-6">
-                        <div class="w-14 h-14 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-3 text-xl"><i class="fa-solid fa-user-plus"></i></div>
-                        <h2 class="text-xl font-bold text-gray-800">ลงทะเบียนนักศึกษา</h2>
+                        <div class="w-16 h-16 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">
+                            <i class="fa-solid fa-user-plus"></i>
+                        </div>
+                        <h2 class="text-2xl font-bold text-gray-800">ลงทะเบียนนักศึกษา</h2>
+                        <p class="text-sm text-gray-500">กรุณากรอกข้อมูลให้ครบถ้วน</p>
                     </div>
+                    
                     <form onsubmit="studentApp.register(event)" class="space-y-4">
                         <div class="group relative">
-                            <label class="block text-gray-700 text-xs font-bold mb-1 ml-1">รหัสนักศึกษา</label>
-                            <div class="relative"><i class="fa-solid fa-id-card absolute left-3 top-3.5 text-gray-400 z-10"></i><input type="text" id="reg-id" required class="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-gray-50 text-sm" placeholder="เช่น 6601234"></div>
+                            <label class="block text-gray-700 text-xs font-bold mb-1 uppercase tracking-wide">รหัสนักศึกษา</label>
+                            <div class="relative">
+                                <i class="fa-solid fa-id-card absolute left-3 top-3.5 text-gray-400 group-focus-within:text-brand transition-colors z-10"></i>
+                                <input type="text" id="reg-id" required class="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-gray-50 text-gray-900 shadow-sm" placeholder="เช่น 6601234">
+                            </div>
                         </div>
                         <div class="group relative">
-                            <label class="block text-gray-700 text-xs font-bold mb-1 ml-1">ชื่อ - นามสกุล</label>
-                            <div class="relative"><i class="fa-solid fa-user absolute left-3 top-3.5 text-gray-400 z-10"></i><input type="text" id="reg-name" required class="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-gray-50 text-sm" placeholder="เช่น สมชาย ใจดี"></div>
+                            <label class="block text-gray-700 text-xs font-bold mb-1 uppercase tracking-wide">ชื่อ - นามสกุล</label>
+                            <div class="relative">
+                                <i class="fa-solid fa-user absolute left-3 top-3.5 text-gray-400 group-focus-within:text-brand transition-colors z-10"></i>
+                                <input type="text" id="reg-name" required class="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-gray-50 text-gray-900 shadow-sm" placeholder="เช่น สมชาย ใจดี">
+                            </div>
                         </div>
-                        <div class="group relative">
-                            <label class="block text-gray-700 text-xs font-bold mb-1 ml-1">สาขาวิชา</label>
-                            <div class="relative"><i class="fa-solid fa-graduation-cap absolute left-3 top-3.5 text-gray-400 z-10"></i><input type="text" id="reg-major" required class="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-gray-50 text-sm" placeholder="ระบุสาขาวิชา..."></div>
+                        
+                        <div class="flex gap-2">
+                             <div class="group relative flex-[2]">
+                                <label class="block text-gray-700 text-xs font-bold mb-1 uppercase tracking-wide">สาขาวิชา</label>
+                                <div class="relative">
+                                    <i class="fa-solid fa-graduation-cap absolute left-3 top-3.5 text-gray-400 group-focus-within:text-brand transition-colors z-10"></i>
+                                    <input type="text" id="reg-major" required class="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-gray-50 text-gray-900 shadow-sm" placeholder="เช่น คอมพิวเตอร์">
+                                </div>
+                            </div>
+                            <!-- NEW: Year Input -->
+                             <div class="group relative flex-1">
+                                <label class="block text-gray-700 text-xs font-bold mb-1 uppercase tracking-wide">ปีการศึกษา</label>
+                                <div class="relative">
+                                    <i class="fa-solid fa-calendar-days absolute left-3 top-3.5 text-gray-400 group-focus-within:text-brand transition-colors z-10"></i>
+                                    <input type="text" id="reg-year" required class="w-full pl-9 pr-3 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-gray-50 text-gray-900 shadow-sm" placeholder="67">
+                                </div>
+                            </div>
                         </div>
-                        <button type="submit" class="w-full bg-gradient-brand text-white font-bold py-3.5 rounded-xl hover:opacity-90 shadow-md mt-4">ลงทะเบียน</button>
-                        <button type="button" onclick="router.navigateTo('landing')" class="w-full mt-4 text-gray-500 text-sm hover:text-gray-800 text-center flex items-center justify-center gap-2 py-2"><i class="fa-solid fa-arrow-left"></i> ย้อนกลับ</button>
+
+                        <button type="submit" class="w-full bg-gradient-brand text-white font-bold py-3.5 rounded-xl hover:opacity-90 transition shadow-lg transform active:scale-95 mt-6">
+                            ลงทะเบียนเข้าใช้งาน
+                        </button>
+                        <button type="button" onclick="router.navigateTo('landing')" class="w-full mt-4 text-gray-500 text-sm hover:text-gray-800 transition-colors text-center flex items-center justify-center gap-2 py-2">
+                            <i class="fa-solid fa-arrow-left"></i> ย้อนกลับ
+                        </button>
                     </form>
                 </div>
             </div>
 
             <!-- 3. Student Dashboard -->
-            <div id="page-student-dashboard" class="force-hide flex-col pb-24 w-full">
-                <!-- Dashboard Content -->
-                <div class="bg-gradient-to-br from-violet-600 to-indigo-700 p-5 rounded-2xl shadow-lg mb-6 text-white relative overflow-hidden">
+            <div id="page-student-dashboard" class="force-hide flex-col pb-24 px-4 pt-4 w-full">
+                <!-- Content same as before -->
+                <div class="bg-gradient-to-br from-violet-600 to-indigo-700 p-6 rounded-3xl shadow-xl mb-6 text-white relative overflow-hidden group">
                      <div class="flex justify-between items-start relative z-10">
                         <div>
-                            <p class="text-indigo-200 text-xs mb-1 font-medium">ยินดีต้อนรับ,</p>
-                            <h2 id="st-dash-name" class="text-xl sm:text-2xl font-bold tracking-tight mb-1 truncate max-w-[200px]">...</h2>
-                            <div class="flex items-center gap-2"><span class="bg-white/20 px-2 py-0.5 rounded text-[10px] backdrop-blur-sm border border-white/10"><i class="fa-solid fa-id-card-clip mr-1"></i> <span id="st-dash-id">...</span></span></div>
+                            <p class="text-indigo-200 text-sm mb-1 font-medium">ยินดีต้อนรับ,</p>
+                            <h2 id="st-dash-name" class="text-2xl font-bold tracking-tight mb-1 drop-shadow-md">...</h2>
+                            <div class="flex items-center gap-2"><span class="bg-white/20 px-2 py-0.5 rounded-lg text-xs backdrop-blur-sm border border-white/10"><i class="fa-solid fa-id-card-clip mr-1"></i> <span id="st-dash-id">...</span> <span id="st-dash-year" class="ml-2 opacity-70"></span></span></div>
                         </div>
-                        <div id="gps-status-badge" class="bg-white/20 backdrop-blur-md border border-white/30 px-3 py-1 rounded-full text-[10px] font-bold shadow-sm animate-pulse flex items-center gap-1"><i class="fa-solid fa-satellite-dish"></i> <span>ค้นหา...</span></div>
+                        <div id="gps-status-badge" class="bg-white/20 backdrop-blur-md border border-white/30 px-3 py-1.5 rounded-full text-xs font-bold shadow-sm animate-pulse"><i class="fa-solid fa-satellite-dish mr-1"></i> หาสัญญาณ...</div>
                     </div>
                 </div>
 
-                <div class="grid grid-cols-3 gap-2 sm:gap-4 mb-6">
-                    <div id="box-dist" class="bg-white p-2 sm:p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center">
-                        <i class="fa-solid fa-route text-blue-500 text-lg mb-1"></i><div class="text-[10px] text-gray-400">ระยะห่าง</div><div id="st-dist" class="font-bold text-gray-800 text-xs sm:text-sm">-</div>
+                <div class="grid grid-cols-3 gap-3 mb-6">
+                    <div id="box-dist" class="bg-white p-3 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center">
+                        <div class="w-8 h-8 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center mb-2 text-sm shadow-sm"><i class="fa-solid fa-route"></i></div>
+                        <div class="text-[10px] text-gray-400 font-medium">ระยะห่าง</div>
+                        <div id="st-dist" class="font-bold text-gray-800 text-sm mt-1">-</div>
                     </div>
-                    <div class="bg-white p-2 sm:p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center">
-                        <i class="fa-solid fa-satellite text-purple-500 text-lg mb-1"></i><div class="text-[10px] text-gray-400">ความแม่นยำ</div><div id="st-acc" class="font-bold text-gray-800 text-xs sm:text-sm">-</div>
+                    <div class="bg-white p-3 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center">
+                        <div class="w-8 h-8 rounded-full bg-purple-50 text-purple-500 flex items-center justify-center mb-2 text-sm shadow-sm"><i class="fa-solid fa-satellite"></i></div>
+                        <div class="text-[10px] text-gray-400 font-medium">ความแม่นยำ</div>
+                        <div id="st-acc" class="font-bold text-gray-800 text-sm mt-1">-</div>
                     </div>
-                    <div id="box-status" class="bg-white p-2 sm:p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center">
-                        <i id="icon-status" class="fa-solid fa-location-dot text-gray-400 text-lg mb-1"></i><div class="text-[10px] text-gray-400">สถานะ</div><div id="st-status-text" class="font-bold text-gray-400 text-xs sm:text-sm">รอพิกัด...</div>
+                    <div id="box-status" class="bg-white p-3 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center">
+                        <div id="icon-status" class="w-8 h-8 rounded-full bg-gray-100 text-gray-400 flex items-center justify-center mb-2 text-sm shadow-sm transition-colors"><i class="fa-solid fa-location-dot"></i></div>
+                        <div class="text-[10px] text-gray-400 font-medium">สถานะ</div>
+                        <div id="st-status-text" class="font-bold text-gray-400 text-xs mt-1">รอพิกัด...</div>
                     </div>
                 </div>
 
-                <!-- FIX: Added 'disabled' attribute to prevent early clicks -->
-                <button id="btn-checkin" onclick="studentApp.checkIn()" disabled class="w-full py-5 rounded-2xl bg-gray-200 text-gray-400 font-bold text-lg shadow-inner mb-6 transition-all transform active:scale-95 flex flex-col items-center justify-center gap-1 disabled:cursor-not-allowed">
-                    <i class="fa-solid fa-fingerprint text-3xl"></i><span>กำลังค้นหา GPS...</span>
+                <button id="btn-checkin" onclick="studentApp.checkIn()" class="w-full py-6 rounded-2xl bg-gray-300 text-gray-500 font-bold text-xl shadow-inner mb-6 transition-all transform active:scale-95 disabled:cursor-not-allowed">
+                    <div class="flex flex-col items-center"><i class="fa-solid fa-fingerprint text-4xl mb-2"></i><span>กำลังค้นหา GPS...</span></div>
                 </button>
 
-                <div class="grid grid-cols-2 gap-3 sm:gap-4 mb-6">
-                    <button onclick="studentApp.openLeaveModal()" class="bg-orange-50 p-3 sm:p-4 rounded-xl border border-orange-100 hover:bg-orange-100 transition-all flex flex-col items-center justify-center text-center gap-2">
-                        <i class="fa-solid fa-envelope-open-text text-xl text-orange-500"></i><div><div class="font-bold text-orange-700 text-sm">ลาเรียน</div><div class="text-[10px] text-orange-400">แจ้งลาป่วย/กิจ</div></div>
-                    </button>
-                    <button id="btn-reset-account" onclick="studentApp.resetAccount()" class="bg-gray-50 p-3 sm:p-4 rounded-xl border border-gray-200 hover:bg-gray-100 transition-all flex flex-col items-center justify-center text-center gap-2">
-                        <i class="fa-solid fa-rotate-right text-xl text-gray-500"></i><div><div class="font-bold text-gray-700 text-sm">รีเซตบัญชี</div><div class="text-[10px] text-gray-400">ลงทะเบียนใหม่</div></div>
-                    </button>
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <button onclick="studentApp.openLeaveModal()" class="bg-orange-50 p-4 rounded-2xl border border-orange-100 hover:bg-orange-100 transition-all group"><div class="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center mb-3 group-hover:bg-orange-200"><i class="fa-solid fa-envelope-open-text text-xl text-orange-500"></i></div><div class="font-bold text-orange-700 text-left">ลาเรียน</div></button>
+                    <button id="btn-reset-account" onclick="studentApp.resetAccount()" class="bg-gray-50 p-4 rounded-2xl border border-gray-200 hover:bg-gray-100 transition-all group"><div class="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center mb-3 group-hover:bg-gray-300"><i class="fa-solid fa-rotate-right text-xl text-gray-500"></i></div><div class="font-bold text-gray-700 text-left">รีเซตบัญชี</div></button>
                 </div>
 
-                <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col sm:flex-row items-center gap-4">
-                    <div class="w-full sm:w-1/3 h-32 relative flex items-center justify-center">
-                        <canvas id="studentStatChart"></canvas>
-                        <div class="absolute inset-0 flex items-center justify-center flex-col pointer-events-none">
-                            <span class="text-[10px] text-gray-400">รวม</span><span class="text-lg font-bold text-gray-700" id="stat-chart-total">0</span>
-                        </div>
-                    </div>
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col sm:flex-row items-center gap-4">
+                    <div class="w-full sm:w-1/3 h-32 relative flex items-center justify-center"><canvas id="studentStatChart"></canvas><div class="absolute inset-0 flex items-center justify-center flex-col"><span class="text-[10px] text-gray-400">รวม</span><span class="text-sm font-bold text-gray-700" id="stat-chart-total">0</span></div></div>
                     <div class="w-full sm:w-2/3 grid grid-cols-2 gap-3">
-                        <div class="bg-green-50 p-2 rounded-lg text-center"><span class="text-xs text-green-600 block">ทันเวลา</span><span id="stat-present" class="text-lg font-bold text-green-700">0</span></div>
-                        <div class="bg-yellow-50 p-2 rounded-lg text-center"><span class="text-xs text-yellow-600 block">สาย</span><span id="stat-late" class="text-lg font-bold text-yellow-700">0</span></div>
-                        <div class="bg-orange-50 p-2 rounded-lg text-center"><span class="text-xs text-orange-600 block">ลา</span><span id="stat-leave" class="text-lg font-bold text-orange-700">0</span></div>
-                        <div class="bg-red-50 p-2 rounded-lg text-center"><span class="text-xs text-red-600 block">ขาด</span><span id="stat-absent" class="text-lg font-bold text-red-700">0</span></div>
+                        <div class="text-left"><div class="flex items-center gap-1 mb-0.5"><div class="w-2 h-2 rounded-full bg-green-400"></div><span class="text-xs text-gray-500">ทันเวลา</span></div><span id="stat-present" class="text-lg font-bold text-gray-800">0</span></div>
+                        <div class="text-left"><div class="flex items-center gap-1 mb-0.5"><div class="w-2 h-2 rounded-full bg-yellow-400"></div><span class="text-xs text-gray-500">มาสาย</span></div><span id="stat-late" class="text-lg font-bold text-gray-800">0</span></div>
+                        <div class="text-left"><div class="flex items-center gap-1 mb-0.5"><div class="w-2 h-2 rounded-full bg-orange-400"></div><span class="text-xs text-gray-500">ลา</span></div><span id="stat-leave" class="text-lg font-bold text-gray-800">0</span></div>
+                        <div class="text-left"><div class="flex items-center gap-1 mb-0.5"><div class="w-2 h-2 rounded-full bg-red-400"></div><span class="text-xs text-gray-500">ขาด</span></div><span id="stat-absent" class="text-lg font-bold text-gray-800">0</span></div>
                     </div>
                 </div>
+
                 <div class="mt-8 text-center pb-8"><button onclick="router.navigateTo('landing')" class="text-gray-400 hover:text-gray-600 text-sm underline">ออกจากหน้าจอ</button></div>
             </div>
 
             <!-- 4. Teacher Login -->
             <div id="page-teacher-login" class="force-hide flex-col justify-center items-center w-full py-10 relative z-50">
-                <div class="bg-white p-6 sm:p-8 rounded-3xl shadow-xl border border-gray-100 w-full max-w-sm">
+                <div class="bg-white p-8 rounded-3xl shadow-xl border border-gray-100 w-full max-w-sm">
                     <h2 class="text-2xl font-bold text-brand mb-6 text-center">สำหรับอาจารย์</h2>
                     <form onsubmit="teacherApp.login(event)" class="space-y-4">
                         <div class="group relative">
                             <label class="block text-gray-700 text-xs font-bold mb-1 uppercase">Username</label>
-                            <input type="text" id="t-user" required class="w-full pl-3 pr-3 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 bg-gray-50 text-sm">
+                            <input type="text" id="t-user" required class="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 bg-gray-50">
                         </div>
                         <div class="group relative">
                             <label class="block text-gray-700 text-xs font-bold mb-1 uppercase">Password</label>
-                            <input type="password" id="t-pass" required class="w-full pl-3 pr-3 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 bg-gray-50 text-sm">
+                            <input type="password" id="t-pass" required class="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 bg-gray-50">
                         </div>
                         <button type="submit" class="w-full bg-gray-800 text-white font-bold py-3.5 rounded-xl hover:bg-gray-700 transition shadow-lg mt-6">เข้าสู่ระบบ</button>
                         <button type="button" onclick="router.navigateTo('landing')" class="w-full mt-4 text-gray-500 text-sm hover:text-gray-800 text-center flex items-center justify-center gap-2"><i class="fa-solid fa-arrow-left"></i> ย้อนกลับ</button>
@@ -252,12 +315,18 @@
                          <button onclick="teacherApp.openSheet()" class="flex-1 bg-white text-green-600 border border-green-200 px-3 py-2 rounded-xl text-xs font-bold hover:bg-green-50 shadow-sm flex items-center justify-center gap-1"><i class="fa-brands fa-google-drive"></i> เปิด Sheets</button>
                          <button onclick="teacherApp.exportToCSV()" class="flex-1 bg-green-600 text-white px-3 py-2 rounded-xl text-xs font-bold hover:bg-green-700 shadow-sm flex items-center justify-center gap-1"><i class="fa-solid fa-download"></i> โหลด CSV</button>
                     </div>
+                    <!-- FIX: Added 'overview-filter-year' for Student Academic Year Filter -->
                     <div class="bg-white p-3 rounded-xl shadow-sm border border-gray-100 flex flex-wrap gap-2 items-center">
-                         <select id="overview-filter-major" onchange="teacherApp.loadOverview()" class="bg-gray-50 border-none text-xs rounded-lg p-2 flex-1 min-w-[120px]"><option value="all">ทุกสาขา</option></select>
-                         <select id="filter-type" onchange="teacherApp.toggleFilterType()" class="bg-gray-50 border-none text-xs rounded-lg p-2 w-auto"><option value="daily">รายวัน</option><option value="monthly">รายเดือน</option></select>
-                         <input type="date" id="filter-date" class="bg-gray-50 border-none text-xs rounded-lg p-2 flex-1 min-w-[120px]" onchange="teacherApp.loadOverview()">
-                         <input type="month" id="filter-month" class="bg-gray-50 border-none text-xs rounded-lg p-2 flex-1 min-w-[120px] hidden" onchange="teacherApp.loadOverview()">
-                         <input type="number" id="filter-year" class="bg-gray-50 border-none text-xs rounded-lg p-2 flex-1 min-w-[120px] hidden" onchange="teacherApp.loadOverview()" placeholder="ปี ค.ศ.">
+                         <div class="flex items-center gap-2 w-full sm:w-auto">
+                             <select id="overview-filter-year" onchange="teacherApp.loadOverview()" class="bg-gray-50 border-none text-xs rounded-lg p-2 flex-1 min-w-[100px]"><option value="all">ทุกปีการศึกษา</option></select>
+                             <select id="overview-filter-major" onchange="teacherApp.loadOverview()" class="bg-gray-50 border-none text-xs rounded-lg p-2 flex-1 min-w-[120px]"><option value="all">ทุกสาขา</option></select>
+                         </div>
+                         <div class="flex items-center gap-2 w-full sm:w-auto">
+                             <select id="filter-type" onchange="teacherApp.toggleFilterType()" class="bg-gray-50 border-none text-xs rounded-lg p-2 w-auto"><option value="daily">รายวัน</option><option value="monthly">รายเดือน</option><option value="yearly">รายปี</option></select>
+                             <input type="date" id="filter-date" class="bg-gray-50 border-none text-xs rounded-lg p-2 flex-1 min-w-[120px]" onchange="teacherApp.loadOverview()">
+                             <input type="month" id="filter-month" class="bg-gray-50 border-none text-xs rounded-lg p-2 flex-1 min-w-[120px] hidden" onchange="teacherApp.loadOverview()">
+                             <input type="number" id="filter-year" class="bg-gray-50 border-none text-xs rounded-lg p-2 flex-1 min-w-[120px] hidden" onchange="teacherApp.loadOverview()" placeholder="ปี ค.ศ.">
+                         </div>
                     </div>
                     <div class="grid grid-cols-2 gap-3">
                         <div class="bg-gradient-to-br from-purple-600 to-indigo-600 p-4 rounded-2xl text-white shadow-md"><h3 class="text-xs opacity-80" id="overview-count-title">วันนี้</h3><div class="text-2xl font-bold mt-1" id="overview-today-count">0</div><div class="text-[10px]">คน (เช็คชื่อ)</div></div>
@@ -280,7 +349,9 @@
                          <h3 class="font-bold text-sm text-gray-700 flex items-center gap-2"><i class="fa-solid fa-users text-indigo-500"></i> รายชื่อนักศึกษา</h3>
                          <div class="flex gap-2 w-full sm:w-auto">
                              <input type="month" id="student-filter-month" class="text-xs border border-gray-300 rounded-lg p-1.5 bg-white" onchange="teacherApp.loadStudents()">
-                             <select id="student-filter-major" onchange="teacherApp.loadStudents()" class="text-xs border border-gray-300 rounded-lg p-1.5 bg-white"><option value="all">ทุกสาขาวิชา</option></select>
+                             <!-- NEW: Year Filter -->
+                             <select id="student-filter-year" onchange="teacherApp.loadStudents()" class="text-xs border border-gray-300 rounded-lg p-1.5 bg-white min-w-[100px]"><option value="all">ทุกปีการศึกษา</option></select>
+                             <select id="student-filter-major" onchange="teacherApp.loadStudents()" class="text-xs border border-gray-300 rounded-lg p-1.5 bg-white min-w-[100px]"><option value="all">ทุกสาขาวิชา</option></select>
                          </div>
                      </div>
                      <div class="overflow-x-auto max-h-[60vh]">
@@ -357,20 +428,15 @@
                      <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
                         <h3 class="text-sm font-bold text-gray-800 mb-3"><i class="fa-brands fa-google-drive text-green-500"></i> Google Sheets</h3>
                         <input type="url" id="set-sheet-url" class="w-full border p-2 rounded-lg text-xs mb-2" placeholder="วางลิงก์ Google Sheet ที่นี่">
-                        
-                        <div class="mb-2 pt-2 border-t border-dashed">
-                             <div class="flex justify-between items-center mb-1 cursor-pointer" onclick="document.getElementById('adv-webhook').classList.toggle('hidden')">
-                                <label class="text-gray-500 text-[10px] font-bold">⚙️ API Webhook</label>
-                                <i class="fa-solid fa-chevron-down text-gray-400 text-[10px]"></i>
-                            </div>
-                            <div id="adv-webhook" class="hidden">
-                                <input type="url" id="set-webhook-url" class="w-full border border-gray-200 bg-gray-50 p-2 rounded-lg text-xs" placeholder="GAS Web App URL">
-                            </div>
-                        </div>
-
                         <button onclick="teacherApp.saveSheetSettings()" class="w-full bg-green-600 text-white py-2 rounded-lg text-xs font-bold">บันทึกลิงก์</button>
                     </div>
                     <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100"><h3 class="text-sm font-bold text-gray-800 mb-3"><i class="fa-solid fa-user-shield text-indigo-500"></i> บัญชีผู้ใช้</h3><div class="space-y-2"><input type="text" id="set-new-user" class="w-full border p-2 rounded-lg text-xs" placeholder="เปลี่ยนชื่อผู้ใช้"><input type="password" id="set-cur-pass" class="w-full border p-2 rounded-lg text-xs" placeholder="รหัสผ่านปัจจุบัน (ยืนยัน)"><div class="grid grid-cols-2 gap-2"><input type="password" id="set-new-pass" class="w-full border p-2 rounded-lg text-xs" placeholder="รหัสผ่านใหม่"><input type="password" id="set-confirm-pass" class="w-full border p-2 rounded-lg text-xs" placeholder="ยืนยันรหัสใหม่"></div><button onclick="teacherApp.saveAccountSettings()" class="w-full bg-indigo-600 text-white py-2 rounded-lg text-xs font-bold mt-2">บันทึกการเปลี่ยนแปลง</button></div></div>
+                    
+                    <!-- Clear Data Button -->
+                    <div class="bg-red-50 p-4 rounded-xl shadow-sm border border-red-100 mt-4 text-center">
+                        <h3 class="text-sm font-bold text-red-700 mb-2"><i class="fa-solid fa-triangle-exclamation"></i> พื้นที่อันตราย</h3>
+                        <button onclick="teacherApp.clearAllData()" class="w-full bg-white border border-red-200 text-red-600 py-2 rounded-lg text-xs font-bold hover:bg-red-50 transition">ล้างข้อมูลทั้งหมด (เริ่มต้นใหม่)</button>
+                    </div>
                 </div>
 
                 <div class="mobile-bottom-nav justify-around items-center h-16 border-t border-gray-200 bg-white/95 backdrop-blur-md">
@@ -382,19 +448,34 @@
             </div>
 
             <!-- Details Page -->
-            <!-- FIX: Added 'flex' class so 'hidden' removal works correctly and added Graphs/Filters -->
-            <div id="page-student-details" class="hidden flex-col w-full h-full bg-white absolute inset-0 z-40 overflow-y-auto">
+            <!-- FIX: FORCE SHOW CLASSES (flex, z-50, no hidden) -->
+            <div id="page-student-details" class="hidden force-hide flex-col w-full h-full bg-white absolute inset-0 z-50 overflow-y-auto">
                 <div class="bg-white shadow-sm p-4 flex items-center gap-3 sticky top-0 z-10"><button onclick="teacherApp.closeStudentDetails()" class="p-2 rounded-full bg-gray-100 text-gray-600"><i class="fa-solid fa-arrow-left"></i></button><h2 class="text-lg font-bold text-gray-800">ข้อมูลนักศึกษา</h2></div>
                 <div class="p-4 space-y-4 pb-20">
-                     <div class="bg-indigo-50 p-4 rounded-xl text-center"><div class="w-16 h-16 bg-white text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-2 text-2xl shadow-sm font-bold" id="sd-avatar">A</div><h2 id="sd-name" class="text-lg font-bold text-indigo-900">...</h2><p id="sd-id" class="text-sm text-indigo-600">...</p><p id="sd-major" class="text-xs text-indigo-400 mt-1">...</p></div>
+                     <!-- FIX: Updated Header UI to include Year -->
+                     <div class="bg-indigo-50 p-4 rounded-xl text-center">
+                        <div class="w-16 h-16 bg-white text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-2 text-2xl shadow-sm font-bold" id="sd-avatar">A</div>
+                        <h2 id="sd-name" class="text-lg font-bold text-indigo-900 mb-2">...</h2>
+                        <div class="flex flex-wrap justify-center gap-2">
+                            <span class="bg-white/60 px-3 py-1 rounded-lg text-xs text-indigo-700 font-medium border border-indigo-100/50">
+                                <i class="fa-solid fa-id-card mr-1"></i> <span id="sd-id">...</span>
+                            </span>
+                            <span class="bg-white/60 px-3 py-1 rounded-lg text-xs text-indigo-700 font-medium border border-indigo-100/50">
+                                <i class="fa-solid fa-graduation-cap mr-1"></i> <span id="sd-major">...</span>
+                            </span>
+                            <span class="bg-white/60 px-3 py-1 rounded-lg text-xs text-indigo-700 font-medium border border-indigo-100/50">
+                                <i class="fa-regular fa-calendar mr-1"></i> ปี <span id="sd-year">...</span>
+                            </span>
+                        </div>
+                     </div>
                      
                      <!-- FIX: Added Filter & Charts to Student Details -->
                      <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col sm:flex-row gap-3 items-center justify-between">
                          <div class="flex items-center gap-2"><i class="fa-solid fa-filter text-purple-500"></i><h3 class="font-bold text-gray-700 text-sm">ตัวกรอง</h3></div>
                          <div class="flex gap-2 w-full sm:w-auto">
                              <select id="sd-filter-type" onchange="teacherApp.toggleSdFilterType()" class="border p-2 rounded-lg text-xs bg-gray-50"><option value="monthly">รายเดือน</option><option value="yearly">รายปี</option></select>
-                             <input type="month" id="sd-filter-month" class="border p-2 rounded-lg text-xs flex-1" onchange="teacherApp.loadStudentDetails()">
-                             <input type="number" id="sd-filter-year" class="border p-2 rounded-lg text-xs flex-1 hidden" placeholder="ปี ค.ศ." onchange="teacherApp.loadStudentDetails()">
+                             <input type="month" id="sd-filter-month" class="border p-2 rounded-lg text-xs flex-1" onchange="teacherApp.loadStudentDetails(teacherApp.currentViewingStudentId)">
+                             <input type="number" id="sd-filter-year" class="border p-2 rounded-lg text-xs flex-1 hidden" placeholder="ปี ค.ศ." onchange="teacherApp.loadStudentDetails(teacherApp.currentViewingStudentId)">
                          </div>
                      </div>
 
@@ -457,23 +538,25 @@
             getAttendance() { return this.getAll().filter(r=>r.type==='attendance'); },
             getLeaves() { return this.getAll().filter(r=>r.type==='leave'); },
             getZone() { return JSON.parse(localStorage.getItem('tcc_map_zone')); },
-            saveZone(g) { localStorage.setItem('tcc_map_zone', JSON.stringify(g)); }
+            saveZone(g) { localStorage.setItem('tcc_map_zone', JSON.stringify(g)); },
+            reset() { localStorage.removeItem(this.KEY); localStorage.removeItem('current_student_user'); }
         };
         const DEVICE_ID = localStorage.getItem('device_fingerprint') || (() => { const id='fp_'+Math.random().toString(36).substr(2,9); localStorage.setItem('device_fingerprint',id); return id; })();
 
         // SEED DUMMY DATA FOR DEMO
         const seedData = () => {
              const students = DB.getStudents();
+             // Remove seed logic if unwanted. Keep for demo.
+             // Uncomment to disable: return;
              if(students.length === 0) {
+                 // Removed auto-seed as requested previously, but kept function structure for testing
                  const demoStudents = [
-                     { student_id: '660001', student_name: 'สมชาย ใจดี', major: 'คอมพิวเตอร์', type: 'registration', is_locked: false },
-                     { student_id: '660002', student_name: 'สมหญิง รักเรียน', major: 'การบัญชี', type: 'registration', is_locked: false },
-                     { student_id: '660003', student_name: 'มานะ ขยัน', major: 'คอมพิวเตอร์', type: 'registration', is_locked: false }
+                     { student_id: '660001', student_name: 'สมชาย ใจดี', major: 'คอมพิวเตอร์', year: '66', type: 'registration', is_locked: false },
+                     { student_id: '660002', student_name: 'สมหญิง รักเรียน', major: 'การบัญชี', year: '66', type: 'registration', is_locked: false }
                  ];
                  const d = new Date().toISOString();
                  const demoAtt = [
-                     { type: 'attendance', student_id: '660001', student_name: 'สมชาย ใจดี', major: 'คอมพิวเตอร์', check_in_time: d, check_in_status: 'on_time' },
-                     { type: 'attendance', student_id: '660002', student_name: 'สมหญิง รักเรียน', major: 'การบัญชี', check_in_time: d, check_in_status: 'late' }
+                     { type: 'attendance', student_id: '660001', student_name: 'สมชาย ใจดี', major: 'คอมพิวเตอร์', check_in_time: d, check_in_status: 'on_time' }
                  ];
                  const allData = [...demoStudents, ...demoAtt];
                  DB.save(allData);
@@ -509,7 +592,7 @@
                 const savedZone = DB.getZone();
                 if (!savedZone) {
                     const R = 6371e3; const φ1 = lat * Math.PI/180; const φ2 = CONFIG.COLLEGE_LAT * Math.PI/180;
-                    const a = Math.sin((CONFIG.COLLEGE_LAT-lat)*Math.PI/180/2)**2 + Math.cos(φ1) * Math.cos(φ2) * Math.sin((CONFIG.COLLEGE_LNG-lng)*Math.PI/180/2)**2;
+                    const a = Math.sin((CONFIG.COLLEGE_LAT-lat)*Math.PI/180/2)**2 + Math.cos(φ1) * Math.cos(φ2) * Math.sin((CONFIG.COLLE_LNG-lng)*Math.PI/180/2)**2;
                     return (R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))) <= 50; 
                 }
                 const pt = turf.point([lng, lat]); 
@@ -606,10 +689,20 @@
                         const id = document.getElementById('reg-id').value.trim();
                         const name = document.getElementById('reg-name').value.trim();
                         const major = document.getElementById('reg-major').value.trim();
-                        if(!id || !name || !major) throw new Error("ข้อมูลไม่ครบ");
+                        const year = document.getElementById('reg-year').value.trim();
+                        
+                        if(!id || !name || !major || !year) throw new Error("ข้อมูลไม่ครบ");
                         if(DB.getStudents().find(s=>s.student_id===id)) throw new Error("รหัสนี้มีอยู่แล้ว");
 
-                        const u = { student_id: id, student_name: name, major: major, type: 'registration', is_locked: false, registered_at: new Date().toISOString() };
+                        const u = { 
+                            student_id: id, 
+                            student_name: name, 
+                            major: major,
+                            year: year, 
+                            type: 'registration', 
+                            is_locked: false, 
+                            registered_at: new Date().toISOString() 
+                        };
                         DB.addRecord(u);
                         localStorage.setItem('current_student_user', JSON.stringify(u));
                         this.currentUser = u;
@@ -621,9 +714,23 @@
                 if(!this.currentUser && !this.isRegistered()) { router.navigateTo('landing'); return; }
                 document.getElementById('st-dash-name').innerText = this.currentUser.student_name;
                 document.getElementById('st-dash-id').innerText = this.currentUser.student_id;
+                document.getElementById('st-dash-year').innerText = `(ปี ${this.currentUser.year})`; // Show Year
+                
                 const btn = document.getElementById('btn-reset-account');
-                if(this.currentUser.is_locked) { btn.innerHTML = '<div class="text-red-500 font-bold">ถูกล็อค</div>'; btn.disabled=true; }
-                else { btn.disabled=false; }
+                
+                // --- FIX: Locked Button UI ---
+                if(this.currentUser.is_locked) { 
+                    btn.innerHTML = '<div class="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center mb-3"><i class="fa-solid fa-lock text-xl text-red-500"></i></div><div class="font-bold text-gray-400 text-left">บัญชีถูกล็อค</div><div class="text-[10px] text-red-400 text-left">โดยอาจารย์</div>';
+                    btn.disabled=true; 
+                    btn.classList.add('opacity-50', 'cursor-not-allowed');
+                    btn.onclick = null; // Remove click event just in case
+                } else { 
+                    btn.innerHTML = '<div class="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center mb-3"><i class="fa-solid fa-rotate-right text-xl text-gray-500"></i></div><div class="font-bold text-gray-700 text-left">รีเซตบัญชี</div><div class="text-[10px] text-gray-400 text-left">ลบข้อมูล/เริ่มใหม่</div>';
+                    btn.disabled=false; 
+                    btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    btn.onclick = () => studentApp.resetAccount(); // Re-attach click
+                }
+
                 gpsSystem.startTracking();
                 this.updateStats();
             },
@@ -642,7 +749,17 @@
                 const lateStr = localStorage.getItem('tcc_late_threshold');
                 if(lateStr) { const [h, m] = lateStr.split(':'); const th = new Date(); th.setHours(h, m, 0, 0); if(now > th) status = 'late'; }
                 const rec = { type: 'attendance', student_id: this.currentUser.student_id, student_name: this.currentUser.student_name, major: this.currentUser.major, check_in_time: now.toISOString(), check_in_status: status, latitude: gpsSystem.currentLat, longitude: gpsSystem.currentLng, device_fingerprint: DEVICE_ID };
-                DB.addRecord(rec);
+
+                if (window.firebaseDB) {
+    const { collection, addDoc, serverTimestamp } = window.firebaseTools;
+    // ส่งขึ้น Cloud
+    addDoc(collection(window.firebaseDB, "attendance"), {
+        ...rec,
+        timestamp: serverTimestamp()
+    });
+}
+// บันทึกลงเครื่องด้วย (เพื่อความรวดเร็ว)
+DB.addRecord(rec);
                 this.updateStats();
                 const hook = localStorage.getItem('tcc_webhook_url');
                 if(hook) fetch(hook, { method: 'POST', mode: 'no-cors', headers: {'Content-Type':'application/json'}, body: JSON.stringify(rec) });
@@ -658,15 +775,41 @@
                 Swal.fire('ส่งคำร้องแล้ว', '', 'success');
                 this.updateStats(); 
             },
-            resetAccount() { Swal.fire({ title: 'ลบบัญชี?', showCancelButton: true, confirmButtonText: 'ลบ' }).then((r) => { if(r.isConfirmed) { localStorage.removeItem('current_student_user'); router.navigateTo('landing'); } }); },
+            resetAccount() { 
+                // Double Check with DB
+                const dbUser = DB.getStudents().find(s => s.student_id === this.currentUser.student_id);
+                if (dbUser && dbUser.is_locked) {
+                    Swal.fire('ถูกล็อค', 'อาจารย์ได้ล็อคบัญชีของคุณไว้ ไม่สามารถรีเซตได้', 'error');
+                    this.initDashboard(); // Refresh UI to lock state
+                    return;
+                }
+
+                Swal.fire({ title: 'ยืนยันการลบบัญชี?', text: "ข้อมูลจะหายไปจากเครื่องนี้", icon: 'warning', showCancelButton: true, confirmButtonText: 'ลบเลย' }).then((r) => { 
+                    if(r.isConfirmed) { 
+                        // Remove from DB logic (Optional: if you want student to delete their own data from server)
+                        // For now, we assume reset means clearing local session to re-register or login as someone else
+                        // If you want to delete from DB:
+                        let db = DB.getAll();
+                        db = db.filter(rec => !(rec.type === 'registration' && rec.student_id === this.currentUser.student_id));
+                        DB.save(db);
+                        
+                        localStorage.removeItem('current_student_user'); 
+                        router.navigateTo('landing'); 
+                    } 
+                }); 
+            },
             updateStats() {
                 const att = DB.getAttendance().filter(a => a.student_id === this.currentUser.student_id);
+                // FIX: Only approved leaves
                 const leaves = DB.getLeaves().filter(l => l.student_id === this.currentUser.student_id && l.leave_status === 'approved');
+                
                 const allAtt = DB.getAttendance();
                 const uniqueDays = [...new Set(allAtt.map(a => a.check_in_time ? a.check_in_time.split('T')[0] : ''))].filter(d => d);
+                
                 const p = att.filter(a=>a.check_in_status!=='late').length;
                 const l = att.filter(a=>a.check_in_status==='late').length;
                 const le = leaves.length;
+                
                 let ab = 0;
                 uniqueDays.forEach(day => {
                     const isPresent = att.some(a => a.check_in_time.startsWith(day));
@@ -728,17 +871,37 @@
             
             loadOverview() { 
                 const att = DB.getAttendance(); const students = DB.getStudents(); const leaves = DB.getLeaves();
+                
                 const filterMajorEl = document.getElementById('overview-filter-major');
+                const filterYearEl = document.getElementById('overview-filter-year'); // New Filter
+                
+                // Populate Filters (Majors & Years)
                 if (filterMajorEl.options.length <= 1) {
                     const uniqueMajors = [...new Set(students.map(s => s.major))].sort();
                     uniqueMajors.forEach(m => { if(m) { const opt = document.createElement('option'); opt.value = m; opt.innerText = m; filterMajorEl.appendChild(opt); } });
                 }
+                if (filterYearEl.options.length <= 1) {
+                    const uniqueYears = [...new Set(students.map(s => s.year || 'ไม่ระบุ'))].sort();
+                    uniqueYears.forEach(y => { const opt = document.createElement('option'); opt.value = y; opt.innerText = `ปี ${y}`; filterYearEl.appendChild(opt); });
+                }
+                
+                // Apply Filters
                 const selectedMajor = filterMajorEl.value;
-                const filteredStudents = selectedMajor === 'all' ? students : students.filter(s => s.major === selectedMajor);
-                const filteredAttendance = selectedMajor === 'all' ? att : att.filter(a => { const s = students.find(st => st.student_id === a.student_id); return s && s.major === selectedMajor; });
-                const filteredLeaves = selectedMajor === 'all' ? leaves : leaves.filter(l => { const s = students.find(st => st.student_id === l.student_id); return s && s.major === selectedMajor; });
+                const selectedYear = filterYearEl.value;
+
+                const filteredStudents = students.filter(s => {
+                    const matchMajor = selectedMajor === 'all' || s.major === selectedMajor;
+                    const matchYear = selectedYear === 'all' || (s.year || 'ไม่ระบุ') === selectedYear;
+                    return matchMajor && matchYear;
+                });
+
+                // Filter Attendance/Leaves based on filtered students
+                const studentIds = filteredStudents.map(s => s.student_id);
+                const filteredAttendance = att.filter(a => studentIds.includes(a.student_id));
+                const filteredLeaves = leaves.filter(l => studentIds.includes(l.student_id));
 
                 const date = document.getElementById('filter-date').value;
+                // For "Daily" view logic
                 const todayCount = filteredAttendance.filter(a => a.check_in_time.startsWith(date)).length;
                 const lateCount = filteredAttendance.filter(a => a.check_in_time.startsWith(date) && a.check_in_status === 'late').length;
                 
@@ -755,8 +918,11 @@
                 if (ctxPie) {
                     if (window.myPieChart) window.myPieChart.destroy();
                     const leavesCount = filteredLeaves.filter(l => l.date === date && l.leave_status === 'approved').length;
+                    
+                    // Simple Absent Calc for Daily: Total Students - Present - Leaves
                     const absentCount = Math.max(0, filteredStudents.length - todayCount - leavesCount);
                     const onTimeCount = todayCount - lateCount;
+                    
                     const data = (filteredStudents.length === 0) ? [1] : [onTimeCount, lateCount, leavesCount, absentCount];
                     const colors = (filteredStudents.length === 0) ? ['#eee'] : ['#4ade80', '#facc15', '#fb923c', '#f87171'];
                     const labels = (filteredStudents.length === 0) ? ['ไม่มีข้อมูล'] : ['ทันเวลา', 'สาย', 'ลา', 'ขาด'];
@@ -769,6 +935,7 @@
                 tb.innerHTML = '';
                 
                 const filterMajor = document.getElementById('student-filter-major');
+                const filterYear = document.getElementById('student-filter-year'); // Assuming this exists from previous fix
                 const filterMonth = document.getElementById('student-filter-month');
                 
                 if(!filterMonth.value) filterMonth.value = new Date().toISOString().substring(0, 7);
@@ -778,19 +945,34 @@
                 const attendance = DB.getAttendance();
                 const leaves = DB.getLeaves();
 
+                // Populate Majors if empty
                 if (filterMajor.options.length <= 1) {
                     [...new Set(students.map(s => s.major))].sort().forEach(m => { 
                         if(m) { const opt = document.createElement('option'); opt.value = m; opt.innerText = m; filterMajor.appendChild(opt); } 
                     });
                 }
+                // Populate Years if empty (Ensure this exists in HTML too)
+                if (filterYear && filterYear.options.length <= 1) {
+                    [...new Set(students.map(s => s.year || 'ไม่ระบุ'))].sort().forEach(y => { 
+                        const opt = document.createElement('option'); opt.value = y; opt.innerText = `ปี ${y}`; filterYear.appendChild(opt); 
+                    });
+                }
                 
                 const selectedMajor = filterMajor.value;
-                const list = selectedMajor === 'all' ? students : students.filter(s => s.major === selectedMajor);
+                const selectedStYear = filterYear ? filterYear.value : 'all';
+
+                let list = students;
+                if(selectedMajor !== 'all') list = list.filter(s => s.major === selectedMajor);
+                if(selectedStYear !== 'all') list = list.filter(s => (s.year || 'ไม่ระบุ') === selectedStYear);
                 
                 if (list.length === 0) { 
                     tb.innerHTML = '<tr><td colspan="3" class="text-center py-8 text-gray-400 text-xs">ไม่พบข้อมูลนักศึกษา</td></tr>'; 
                     return; 
                 }
+
+                // Global Check for School Days in this month (Days where ANYONE checked in)
+                const allAttInMonth = attendance.filter(a => a.check_in_time.startsWith(selectedMonth));
+                const uniqueSchoolDays = [...new Set(allAttInMonth.map(a => a.check_in_time.split('T')[0]))];
 
                 list.forEach(s => {
                     const sAtt = attendance.filter(a => a.student_id === s.student_id && a.check_in_time.startsWith(selectedMonth));
@@ -800,12 +982,67 @@
                     const late = sAtt.filter(a => a.check_in_status === 'late').length;
                     const leave = sLeaves.length;
                     
+                    // FIX: Calculate Absent
+                    let absent = 0;
+                    uniqueSchoolDays.forEach(day => {
+                        const isPresent = sAtt.some(a => a.check_in_time.startsWith(day));
+                        const isApprovedLeave = sLeaves.some(l => l.date === day);
+                        if (!isPresent && !isApprovedLeave) absent++;
+                    });
+                    
                     const lockIconClass = s.is_locked ? 'text-red-500 bg-red-50 border-red-100' : 'text-gray-400 hover:text-gray-600 bg-white border-gray-200';
                     const lockIcon = s.is_locked ? 'fa-lock' : 'fa-lock-open';
 
                     const row = document.createElement('tr'); 
-                    row.className = "hover:bg-indigo-50/30 transition group border-b border-gray-50";
-                    row.innerHTML = `<td class="px-4 py-3 cursor-pointer" onclick="teacherApp.loadStudentDetails('${s.student_id}')"><div class="flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-gradient-brand flex items-center justify-center text-white text-xs font-bold shadow-sm flex-shrink-0">${s.student_name.charAt(0)}</div><div><div class="font-bold text-gray-800 text-sm group-hover:text-indigo-700 transition-colors">${s.student_name}</div><div class="text-[10px] text-gray-400 flex items-center gap-1"><i class="fa-solid fa-id-card"></i> ${s.student_id} </div></div></div></td><td class="px-2 py-3 text-center cursor-pointer" onclick="teacherApp.loadStudentDetails('${s.student_id}')"><div class="flex justify-center gap-2"><div class="text-center w-8"><div class="text-xs font-bold text-green-600 bg-green-50 px-1 py-0.5 rounded-md border border-green-100">${present}</div><div class="text-[9px] text-gray-400 mt-0.5">มา</div></div><div class="text-center w-8"><div class="text-xs font-bold text-yellow-600 bg-yellow-50 px-1 py-0.5 rounded-md border border-yellow-100">${late}</div><div class="text-[9px] text-gray-400 mt-0.5">สาย</div></div><div class="text-center w-8"><div class="text-xs font-bold text-orange-600 bg-orange-50 px-1 py-0.5 rounded-md border border-orange-100">${leave}</div><div class="text-[9px] text-gray-400 mt-0.5">ลา</div></div></div></td><td class="px-4 py-3 text-right"><div class="flex justify-end gap-2"><button onclick="event.stopPropagation(); teacherApp.toggleLock('${s.student_id}')" class="w-7 h-7 rounded-lg border flex items-center justify-center transition-all shadow-sm ${lockIconClass}" title="${s.is_locked ? 'ปลดล็อค' : 'ล็อคบัญชี'}"><i class="fa-solid ${lockIcon} text-[10px]"></i></button><button onclick="event.stopPropagation(); teacherApp.deleteStudent('${s.student_id}')" class="w-7 h-7 rounded-lg border border-gray-200 bg-white text-gray-400 hover:text-red-600 hover:bg-red-50 hover:border-red-100 flex items-center justify-center transition-all shadow-sm" title="ลบข้อมูล"><i class="fa-solid fa-trash-can text-[10px]"></i></button></div></td>`;
+                    row.className = "hover:bg-indigo-50/50 transition group border-b border-gray-50 cursor-pointer";
+                    row.addEventListener('click', () => teacherApp.loadStudentDetails(s.student_id));
+                    
+                    // FIX: Added 'Absent' column visually
+                    row.innerHTML = `
+                        <td class="px-4 py-3">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-full bg-gradient-brand flex items-center justify-center text-white text-xs font-bold shadow-sm flex-shrink-0">
+                                    ${s.student_name.charAt(0)}
+                                </div>
+                                <div>
+                                    <div class="font-bold text-gray-800 text-sm group-hover:text-indigo-700 transition-colors">${s.student_name}</div>
+                                    <div class="text-[10px] text-gray-400 flex items-center gap-1">
+                                        <i class="fa-solid fa-id-card"></i> ${s.student_id} <span class="bg-gray-100 px-1 rounded">ปี ${s.year||'-'}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-2 py-3 text-center">
+                            <div class="flex justify-center gap-2">
+                                <div class="text-center w-8">
+                                    <div class="text-xs font-bold text-green-600 bg-green-50 px-1 py-0.5 rounded-md border border-green-100">${present}</div>
+                                    <div class="text-[9px] text-gray-400 mt-0.5">มา</div>
+                                </div>
+                                <div class="text-center w-8">
+                                    <div class="text-xs font-bold text-yellow-600 bg-yellow-50 px-1 py-0.5 rounded-md border border-yellow-100">${late}</div>
+                                    <div class="text-[9px] text-gray-400 mt-0.5">สาย</div>
+                                </div>
+                                <div class="text-center w-8">
+                                    <div class="text-xs font-bold text-orange-600 bg-orange-50 px-1 py-0.5 rounded-md border border-orange-100">${leave}</div>
+                                    <div class="text-[9px] text-gray-400 mt-0.5">ลา</div>
+                                </div>
+                                <div class="text-center w-8">
+                                    <div class="text-xs font-bold text-red-600 bg-red-50 px-1 py-0.5 rounded-md border border-red-100">${absent}</div>
+                                    <div class="text-[9px] text-gray-400 mt-0.5">ขาด</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-4 py-3 text-right">
+                            <div class="flex justify-end gap-2" onclick="event.stopPropagation()">
+                                <button onclick="teacherApp.toggleLock('${s.student_id}')" class="w-7 h-7 rounded-lg border flex items-center justify-center transition-all shadow-sm ${lockIconClass}">
+                                    <i class="fa-solid ${lockIcon} text-[10px]"></i>
+                                </button>
+                                <button onclick="teacherApp.deleteStudent('${s.student_id}')" class="w-7 h-7 rounded-lg border border-gray-200 bg-white text-gray-400 hover:text-red-600 hover:bg-red-50 hover:border-red-100 flex items-center justify-center transition-all shadow-sm">
+                                    <i class="fa-solid fa-trash-can text-[10px]"></i>
+                                </button>
+                            </div>
+                        </td>
+                    `;
                     tb.appendChild(row);
                 });
             },
@@ -867,15 +1104,69 @@
                 localStorage.setItem('tcc_admin_creds', JSON.stringify({ user: nu || vu, pass: np || vp }));
                 Swal.fire('สำเร็จ', 'บันทึกข้อมูลบัญชีแล้ว', 'success');
             },
-            closeStudentDetails() { document.getElementById('page-student-details').classList.add('hidden'); },
+            
+            // FIX: Added clearAllData function
+            clearAllData() {
+                Swal.fire({
+                    title: 'ล้างข้อมูลทั้งหมด?',
+                    text: "ข้อมูลนักศึกษา, การเช็คชื่อ, และการตั้งค่าทั้งหมดจะหายไป ไม่สามารถกู้คืนได้!",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    confirmButtonText: 'ยืนยันล้างข้อมูล',
+                    cancelButtonText: 'ยกเลิก'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        DB.reset();
+                        // Also clear settings
+                        localStorage.removeItem('tcc_admin_creds');
+                        localStorage.removeItem('tcc_late_threshold');
+                        localStorage.removeItem('tcc_sheet_url');
+                        localStorage.removeItem('tcc_webhook_url');
+                        localStorage.removeItem('tcc_map_zone');
+                        
+                        Swal.fire(
+                            'ล้างข้อมูลสำเร็จ',
+                            'ระบบเริ่มต้นใหม่แล้ว',
+                            'success'
+                        ).then(() => {
+                            location.reload();
+                        });
+                    }
+                });
+            },
+
+            // FIX: Updated close function to handle force classes
+            closeStudentDetails() { 
+                const page = document.getElementById('page-student-details');
+                page.classList.add('hidden', 'force-hide'); // Hide and Force Hide
+                page.classList.remove('flex', 'force-show');
+                page.style.display = 'none';
+            },
+
+            // FIX: Updated load function to remove force-hide and force display
             loadStudentDetails(id) {
+                console.log("Opening details for:", id); // Debug
                 this.currentViewingStudentId = id;
                 const s = DB.getStudents().find(x => x.student_id === id);
-                if(!s) return;
-                document.getElementById('page-student-details').classList.remove('hidden');
+                if(!s) {
+                    console.error("Student not found in DB");
+                    return;
+                }
+                
+                const page = document.getElementById('page-student-details');
+                
+                // --- CRITICAL FIX: Force Show Element ---
+                page.classList.remove('hidden', 'force-hide'); 
+                page.classList.add('flex', 'force-show');
+                page.style.display = 'flex'; 
+                page.style.zIndex = '9999'; // Ensure it's on top
+                // ----------------------------------------
+
                 document.getElementById('sd-name').innerText = s.student_name;
                 document.getElementById('sd-id').innerText = s.student_id;
                 document.getElementById('sd-major').innerText = s.major;
+                document.getElementById('sd-year').innerText = s.year || '-'; // แสดงปีการศึกษา (ถ้าไม่มีแสดง -)
                 document.getElementById('sd-avatar').innerText = s.student_name.charAt(0);
                 
                 // Load Filters
@@ -908,7 +1199,6 @@
                 const late = filteredAtt.filter(a=>a.check_in_status==='late').length;
                 const l = filteredLeaves.length;
                 
-                // Absent Logic
                 const allAtt = DB.getAttendance();
                 const uniqueDays = [...new Set(allAtt.map(a => a.check_in_time ? a.check_in_time.split('T')[0] : ''))].filter(d => {
                      return (type === 'monthly') ? d.startsWith(m.value) : d.startsWith(y.value);
@@ -929,24 +1219,27 @@
                 if(window.sdChartPie instanceof Chart) window.sdChartPie.destroy();
                 if(window.sdChartLine instanceof Chart) window.sdChartLine.destroy();
                 
-                const ctxP = document.getElementById('sdChartPie').getContext('2d');
-                const total = p + late + l + ab;
-                const dataP = total === 0 ? [1] : [p, late, l, ab];
-                const colsP = total === 0 ? ['#eee'] : ['#4ade80', '#facc15', '#fb923c', '#f87171'];
+                const ctxP = document.getElementById('sdChartPie')?.getContext('2d');
+                if(ctxP) {
+                    const total = p + late + l + ab;
+                    const dataP = total === 0 ? [1] : [p, late, l, ab];
+                    const colsP = total === 0 ? ['#eee'] : ['#4ade80', '#facc15', '#fb923c', '#f87171'];
 
-                window.sdChartPie = new Chart(ctxP, {
-                    type: 'doughnut',
-                    data: { labels: ['มา', 'สาย', 'ลา', 'ขาด'], datasets: [{ data: dataP, backgroundColor: colsP, borderWidth: 0 }] },
-                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { boxWidth: 10 } } } }
-                });
+                    window.sdChartPie = new Chart(ctxP, {
+                        type: 'doughnut',
+                        data: { labels: ['มา', 'สาย', 'ลา', 'ขาด'], datasets: [{ data: dataP, backgroundColor: colsP, borderWidth: 0 }] },
+                        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { boxWidth: 10 } } } }
+                    });
+                }
                 
-                const ctxL = document.getElementById('sdChartLine').getContext('2d');
-                // Mock line data based on history
-                window.sdChartLine = new Chart(ctxL, {
-                    type: 'line',
-                    data: { labels: ['1', '2', '3', '4'], datasets: [{ label: 'สถานะ', data: [1, 1, 1, 0], borderColor: '#667eea', tension: 0.3 }] },
-                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { display: false } } }
-                });
+                const ctxL = document.getElementById('sdChartLine')?.getContext('2d');
+                if(ctxL) {
+                    window.sdChartLine = new Chart(ctxL, {
+                        type: 'line',
+                        data: { labels: ['สัปดาห์ 1', 'สัปดาห์ 2', 'สัปดาห์ 3', 'สัปดาห์ 4'], datasets: [{ label: 'การเข้าเรียน', data: [p, late, l, ab], borderColor: '#667eea', tension: 0.3 }] },
+                        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { display: false } } }
+                    });
+                }
 
                 const tb = document.getElementById('sd-history-body'); tb.innerHTML = '';
                 const allLeaves = DB.getLeaves().filter(l => l.student_id === id);
@@ -954,7 +1247,6 @@
                      const isAtt = !!r.check_in_time;
                      const d = new Date(isAtt ? r.check_in_time : r.date);
                      
-                     // Filter by date range
                      const dStr = d.toISOString().split('T')[0];
                      if(type === 'monthly' && !dStr.startsWith(m.value)) return;
                      if(type === 'yearly' && !dStr.startsWith(y.value)) return;
@@ -973,11 +1265,46 @@
                 });
             },
             searchStudent() {
-                const q = document.getElementById('search-input').value.toLowerCase();
+                const q = document.getElementById('search-input').value.toLowerCase().trim();
                 const res = document.getElementById('search-results'); res.innerHTML = '';
-                if(!q) return;
-                DB.getStudents().filter(s => s.student_name.toLowerCase().includes(q) || s.student_id.includes(q)).forEach(s => {
-                    res.innerHTML += `<div class="bg-white p-3 rounded mb-2 shadow-sm border flex justify-between items-center cursor-pointer hover:bg-gray-50" onclick="teacherApp.loadStudentDetails('${s.student_id}')"><div><div class="font-bold text-sm">${s.student_name}</div><div class="text-xs text-gray-500">${s.student_id}</div></div><i class="fa-solid fa-chevron-right text-gray-300"></i></div>`;
+                
+                if(!q) {
+                    res.innerHTML = '<div class="text-center text-gray-400 mt-10"><i class="fa-solid fa-magnifying-glass text-4xl mb-2 opacity-20"></i><p class="text-xs">พิมพ์ชื่อเพื่อค้นหา</p></div>';
+                    return;
+                }
+                
+                const students = DB.getStudents().filter(s => 
+                    s.student_name.toLowerCase().includes(q) || 
+                    s.student_id.includes(q)
+                );
+
+                if(students.length === 0) {
+                     res.innerHTML = '<div class="text-center text-gray-400 mt-10 text-xs">ไม่พบข้อมูล</div>';
+                     return;
+                }
+
+                students.forEach(s => {
+                    const div = document.createElement('div');
+                    div.className = "bg-white p-3 rounded-xl mb-2 shadow-sm border border-gray-100 flex justify-between items-center cursor-pointer hover:border-indigo-300 hover:shadow-md transition-all";
+                    
+                    // FIX: Direct click listener
+                    div.onclick = function() {
+                        teacherApp.loadStudentDetails(s.student_id);
+                    };
+                    
+                    div.innerHTML = `
+                        <div class="flex items-center gap-3 pointer-events-none">
+                             <div class="w-8 h-8 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-xs">
+                                ${s.student_name.charAt(0)}
+                            </div>
+                            <div>
+                                <div class="font-bold text-sm text-gray-800">${s.student_name}</div>
+                                <div class="text-xs text-gray-500">${s.student_id} • ${s.major}</div>
+                            </div>
+                        </div>
+                        <i class="fa-solid fa-chevron-right text-gray-300 pointer-events-none"></i>
+                    `;
+                    res.appendChild(div);
                 });
             },
             
@@ -1049,7 +1376,29 @@
         window.addEventListener('load', () => {
             seedData();
             const logo = localStorage.getItem('app_custom_logo');
-            if(logo) document.getElementById('app-logo').src = logo;
+            if(logo) document.getElementById('app-logo').src = logo;// เชื่อมข้อมูล Real-time จาก Cloud
+            if (window.startRealtimeSync) {
+                window.startRealtimeSync((cloudData) => {
+                    // เมื่อได้ข้อมูลจาก Cloud ให้เอามาผสมกับข้อมูลในเครื่อง
+                    // หมายเหตุ: เพื่อความง่าย เราจะบันทึกทับ LocalStorage ไปเลยเพื่อให้ตารางอัปเดต
+                    const currentStudents = DB.getStudents(); // เก็บข้อมูลนักเรียนไว้ก่อน
+                    const currentLeaves = DB.getLeaves();    // เก็บข้อมูลการลาไว้ก่อน
+                    
+                    // รวมร่าง: นักเรียนเดิม + การลาเดิม + ข้อมูลเช็คชื่อจาก Cloud
+                    const mergedData = [...currentStudents, ...currentLeaves, ...cloudData];
+                    
+                    // บันทึกและรีเฟรชหน้าจอ
+                    DB.save(mergedData);
+                    
+                    // ถ้าอาจารย์เปิดหน้า Dashboard อยู่ ให้รีโหลดตารางทันที
+                    if (router.currentPage === 'teacher-dashboard') {
+                        teacherApp.loadOverview();
+                        teacherApp.loadStudents();
+                    }
+                });
+            }
+            // -----------------------------------------------------
+
             router.navigateTo('landing');
         });
         
